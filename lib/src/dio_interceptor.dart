@@ -11,11 +11,13 @@ import 'secure_log.dart' show kDebugMode;
 /// dio.interceptors.add(VibeShieldDioInterceptor());
 /// ```
 class VibeShieldDioInterceptor extends Interceptor {
+  final MaskMode? overrideMode;
   final bool logRequests;
   final bool logResponses;
   final bool logErrors;
 
   VibeShieldDioInterceptor({
+    this.overrideMode,
     this.logRequests = true,
     this.logResponses = true,
     this.logErrors = true,
@@ -24,18 +26,18 @@ class VibeShieldDioInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     // 1. Sanitize request headers
-    options.headers = VibeShield.sanitizeHeaders(options.headers);
+    options.headers = VibeShield.sanitizeHeaders(options.headers, overrideMode: overrideMode);
 
     // 2. Sanitize query parameters
     if (options.queryParameters.isNotEmpty) {
       options.queryParameters = Map<String, dynamic>.from(
-        VibeShield.sanitize(options.queryParameters) as Map,
+        VibeShield.sanitize(options.queryParameters, overrideMode: overrideMode) as Map,
       );
     }
 
     // 3. Sanitize request payload
     if (options.data != null) {
-      options.data = VibeShield.sanitize(options.data);
+      options.data = VibeShield.sanitize(options.data, overrideMode: overrideMode);
     }
 
     if (kDebugMode && logRequests) {
@@ -57,7 +59,7 @@ class VibeShieldDioInterceptor extends Interceptor {
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     // Sanitize response body
     if (response.data != null) {
-      response.data = VibeShield.sanitize(response.data);
+      response.data = VibeShield.sanitize(response.data, overrideMode: overrideMode);
     }
 
     if (kDebugMode && logResponses) {
@@ -88,3 +90,4 @@ class VibeShieldDioInterceptor extends Interceptor {
     handler.next(err);
   }
 }
+

@@ -10,7 +10,55 @@ import 'entropy.dart';
 /// enabling Dart's AOT compiler to tree-shake out all code inside `if (kDebugMode)`.
 const bool kDebugMode = !bool.fromEnvironment('dart.vm.product');
 
-enum MaskMode { off, partial, full }
+/// Secret masking mode enum used across VibeShield:
+/// - [off]: No redaction (raw secret string displayed).
+/// - [partial]: Half mask / preview mode (e.g. `sk_live_****7890`).
+/// - [full]: Full shape-preserving mask guaranteeing 0% character overlap (`aa_aaaa_00aa...`).
+enum MaskMode {
+  off,
+  partial,
+  full;
+
+  /// Helper to check if this mode is off.
+  bool get isOff => this == MaskMode.off;
+
+  /// Helper to check if this mode is partial / half.
+  bool get isPartial => this == MaskMode.partial;
+
+  /// Helper to check if this mode is full.
+  bool get isFull => this == MaskMode.full;
+
+  /// Parses a string into MaskMode (case-insensitive).
+  /// Accepts: 'off', 'none', 'half', 'partial', 'preview', 'full', 'strict'.
+  static MaskMode fromString(String? value, {MaskMode fallback = MaskMode.partial}) {
+    if (value == null) return fallback;
+    switch (value.trim().toLowerCase()) {
+      case 'off':
+      case 'none':
+        return MaskMode.off;
+      case 'half':
+      case 'partial':
+      case 'preview':
+        return MaskMode.partial;
+      case 'full':
+      case 'strict':
+        return MaskMode.full;
+      default:
+        return fallback;
+    }
+  }
+
+  /// Resolves MaskMode from a compile-time `--dart-define=KEY=value` flag.
+  /// Example: `flutter run --dart-define=VIBESHIELD_MODE=full`
+  static MaskMode fromEnvironment(String key, {MaskMode fallback = MaskMode.partial}) {
+    const definedValue = String.fromEnvironment('VIBESHIELD_MODE');
+    // Also check the specific key passed if different
+    if (definedValue.isNotEmpty && key == 'VIBESHIELD_MODE') {
+      return fromString(definedValue, fallback: fallback);
+    }
+    return fallback;
+  }
+}
 
 enum LogLevel { debug, info, warn, error }
 

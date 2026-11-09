@@ -62,12 +62,16 @@ class VibeShield {
 
   /// Direct plug-and-play Dio Interceptor instance.
   /// Usage: `dio.interceptors.add(VibeShield.dioInterceptor());`
+  /// Optionally override the masking mode specifically for Dio:
+  /// `dio.interceptors.add(VibeShield.dioInterceptor(mode: MaskMode.full));`
   static VibeShieldDioInterceptor dioInterceptor({
+    legacy.MaskMode? mode,
     bool logRequests = true,
     bool logResponses = true,
     bool logErrors = true,
   }) =>
       VibeShieldDioInterceptor(
+        overrideMode: mode,
         logRequests: logRequests,
         logResponses: logResponses,
         logErrors: logErrors,
@@ -110,9 +114,21 @@ class VibeShield {
   /// Runs an entire Flutter app or code block inside an isolated auto-redacting Dart Zone.
   /// Recommended pattern for Flutter `main()`:
   /// ```dart
-  /// void main() => VibeShield.run(() => runApp(const MyApp()));
+  /// void main() => VibeShield.run(
+  ///   () => runApp(const MyApp()),
+  ///   mode: MaskMode.partial, // or MaskMode.full, MaskMode.off
+  /// );
   /// ```
-  static R run<R>(R Function() body) {
+  static R run<R>(
+    R Function() body, {
+    legacy.MaskMode? mode,
+    List<String>? exactSecrets,
+    void Function(legacy.RedactionEvent event)? onRedactionEvent,
+  }) {
+    if (mode != null) VibeShield.mode = mode;
+    if (exactSecrets != null) addExactMatches(exactSecrets);
+    if (onRedactionEvent != null) onRedacted = onRedactionEvent;
+
     return runZoned(
       body,
       zoneSpecification: ZoneSpecification(
@@ -241,7 +257,10 @@ class VibeShield {
   // --------------------------------------------------------------------------
 
   /// Sanitizes HTTP headers map (e.g. Authorization, X-Api-Key, Cookie, Bearer tokens).
-  static Map<String, dynamic> sanitizeHeaders(Map<String, dynamic> headers) {
+  static Map<String, dynamic> sanitizeHeaders(
+    Map<String, dynamic> headers, {
+    legacy.MaskMode? overrideMode,
+  }) {
     final result = <String, dynamic>{};
     for (final entry in headers.entries) {
       final keyLower = entry.key.toLowerCase();
@@ -250,9 +269,9 @@ class VibeShield {
           keyLower.contains('key') ||
           keyLower.contains('secret') ||
           keyLower.contains('cookie')) {
-        result[entry.key] = redact(entry.value.toString());
+        result[entry.key] = redact(entry.value.toString(), overrideMode: overrideMode);
       } else {
-        result[entry.key] = sanitize(entry.value);
+        result[entry.key] = sanitize(entry.value, overrideMode: overrideMode);
       }
     }
     return result;
