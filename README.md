@@ -3,30 +3,35 @@
 [![Pub Version](https://img.shields.io/pub/v/vibeshield_flutter.svg)](https://pub.dev/packages/vibeshield_flutter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Dart SDK](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev)
+[![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Web%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-green.svg)](https://pub.dev/packages/vibeshield_flutter)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/vinittailor/vibeshield_flutter)
 
-> **The Ultimate Flutter & Dart Secret Redaction SDK — Zero custody, zero production footprint, and airtight protection against leaks to logs, AI assistants, and network traces.**
+> **The Ultimate Flutter & Dart Secret Redaction SDK — 100% Pure Dart, zero custody, zero production footprint, and airtight protection against credential leaks in logs, AI coding assistants, and network traces.**
 
 ---
 
 ## Why VibeShield Flutter?
 
-Every Flutter developer accidentally prints credentials during debugging: Stripe keys, AWS tokens, Firebase auth tokens, or database URLs. These strings immediately leak into:
+Every Flutter developer accidentally prints credentials during debugging: Stripe secret keys, Firebase tokens, JWTs, AWS credentials, or database URLs. These strings immediately leak into:
+
 1. **Terminal & IDE Logs:** Visible to anyone watching your screen or recorded in CI logs ([CWE-532](https://cwe.mitre.org/data/definitions/532.html)).
-2. **AI Assistants:** Tools like Cursor, GitHub Copilot, and Claude Code read your terminal and editor context, uploading raw keys to LLM servers.
+2. **AI Coding Assistants:** Tools like Cursor, GitHub Copilot, and Claude Code continuously read your active editor context and terminal outputs, uploading raw keys to LLM servers.
 3. **Crash & Telemetry Services:** Sentry or Firebase Crashlytics capture breadcrumbs with unredacted API tokens.
-4. **Network Interceptors:** Dio logger interceptors print `Authorization: Bearer <secret>` in plain text.
+4. **Network Interceptors:** Dio logger interceptors print `Authorization: Bearer <secret>` and response payloads in plain text.
 
 `vibeshield_flutter` solves all of this with **zero code friction**, **provable zero release overhead**, and **zero custody**.
 
 ---
 
-## Core Pillars
+## Package Specifications & Performance
 
-- ⚡ **Zero Production Footprint:** In release builds (`flutter build apk --release` / `flutter build appbundle`), Dart's AOT compiler evaluates `kDebugMode` to compile-time `false`. `VibeShield.run()` directly runs your app with **zero Dart Zones, zero print hooks, and 0% performance overhead**.
-- 🔒 **Zero Custody:** Raw secrets are **never** persisted to disk, stored in memory buffers, or transmitted externally.
-- 🤖 **AI-Proof Architecture:** Provides `SecureKey`, `prompt.aiSafe`, and automated `.cursorignore` / `.copilotignore` generators so AI tools never see real credentials.
-- 🌐 **Network Wire Safe:** The Dio interceptor sanitizes console logs while preserving 100% valid credentials on the actual HTTP network wire.
+| Metric | Specification | Details |
+| :--- | :--- | :--- |
+| **Language** | 100% Pure Dart | Zero native Android (Java/Kotlin) or iOS (Swift/Obj-C) dependencies. |
+| **Download Size** | **~23 KB** | Ultra-lightweight archive; adds no bloat to your dependencies. |
+| **Release Footprint** | **0 KB / 0% CPU** | Dart AOT compiler tree-shakes all Zone logging logic in release mode (`enableInRelease: false`). |
+| **Platform Support** | Multiplatform | Android, iOS, Flutter Web, macOS, Windows, Linux, and standalone Dart CLI. |
+| **Security Standards** | CWE-798 & CWE-532 | Mapped to MITRE standards for Hardcoded Credentials and Log File Exposure. |
 
 ---
 
@@ -41,9 +46,12 @@ Every Flutter developer accidentally prints credentials during debugging: Stripe
   - [2. AI Prompt Sanitization](#2-ai-prompt-sanitization)
   - [3. Project AI Shield](#3-project-ai-shield)
 - [Static Security CLI Scanner](#static-security-cli-scanner)
-- [Native Dart String Extensions](#native-dart-string-extensions)
-- [Fluent Structured Logging](#fluent-structured-logging)
-- [Crashlytics & Sentry Telemetry Hook](#crashlytics--sentry-telemetry-hook)
+- [Real-World Scenarios](#real-world-scenarios)
+  - [Scenario 1: Authentication & JWT Login Response](#scenario-1-authentication--jwt-login-response)
+  - [Scenario 2: Stripe SDK & Payment Gateway](#scenario-2-stripe-sdk--payment-gateway)
+  - [Scenario 3: Non-Custodial Crashlytics & Sentry](#scenario-3-non-custodial-crashlytics--sentry)
+  - [Scenario 4: CI/CD Pipeline Enforcement](#scenario-4-cicd-pipeline-enforcement)
+- [Complete API Reference & Parameters](#complete-api-reference--parameters)
 - [Supported Secret Rules](#supported-secret-rules)
 - [Backward Compatibility](#backward-compatibility)
 - [License](#license)
@@ -53,6 +61,8 @@ Every Flutter developer accidentally prints credentials during debugging: Stripe
 ## Quick Start
 
 ### 1. Add Dependency
+
+Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -90,8 +100,8 @@ VibeShield provides 3 distinct masking modes:
 
 | Mode | Visual Representation | Use Case |
 | :--- | :--- | :--- |
-| `MaskMode.partial` (Default) | `sk_live_****7890` | Identifies provider prefix while concealing secret payload. |
-| `MaskMode.full` | `aa_aaaa_00aa00AA...` | Shape-preserving full mask with **0% character overlap guarantee**. Ideal for live streams and AI prompts. |
+| `MaskMode.partial` (Default) | `sk_live_****7890` | Identifies provider prefix while concealing secret payload. Ideal for daily debugging. |
+| `MaskMode.full` | `aa_aaaa_00aa00AA...` | Shape-preserving full mask with **0% character overlap guarantee**. Perfect for live streaming, recorded demos, and AI prompt context. |
 | `MaskMode.off` | `sk_live_51Hc29...` | Raw pass-through for isolated, controlled local debugging. |
 
 ### Setting or Cycling Modes
@@ -127,13 +137,13 @@ void main() {
 
 ### How it works:
 - In **Debug Mode** (`kDebugMode == true`), VibeShield runs inside a Dart Zone to intercept and scrub logs.
-- In **Release Mode** (`kDebugMode == false`), Dart's AOT compiler optimizes away the check and immediately executes `body()` directly. **Zero Dart Zones are spawned.**
+- In **Release Mode** (`kDebugMode == false`), Dart's AOT compiler evaluates `!kDebugMode && !enableInRelease` to compile-time `true` and immediately executes `body()` directly. **Zero Dart Zones are spawned and zero logging logic is executed.**
 
 ---
 
 ## Dio Network Interceptor
 
-When using [Dio](https://pub.dev/packages/dio), logging interceptors often expose raw `Authorization` headers and JSON request bodies in your terminal.
+When using [Dio](https://pub.dev/packages/dio), logging interceptors often expose raw `Authorization` headers, sensitive query params, and JSON request/response bodies in your terminal.
 
 `VibeShieldDioInterceptor` sanitizes the logged output while **keeping the actual HTTP request untouched over the network wire**:
 
@@ -143,14 +153,16 @@ import 'package:vibeshield_flutter/vibeshield_flutter.dart';
 
 final dio = Dio();
 
-// Add VibeShield interceptor
+// Add VibeShield interceptor in ONE line
 dio.interceptors.add(VibeShield.dioInterceptor());
 
-// Or with custom options
+// Or configure with custom options
 dio.interceptors.add(VibeShieldDioInterceptor(
-  logHeaders: true,
-  logBody: true,
-  enableInRelease: false, // Automatically disabled in release
+  overrideMode: MaskMode.partial,
+  enableInRelease: false, // Default: zero overhead in production
+  logRequests: true,      // Log outgoing HTTP requests
+  logResponses: true,     // Log incoming HTTP responses
+  logErrors: true,        // Log Dio network exceptions
 ));
 ```
 
@@ -160,7 +172,7 @@ dio.interceptors.add(VibeShieldDioInterceptor(
 Headers: {Authorization: Bearer sk_live_****7890}
 Body: {"clientSecret": "sk_live_****7890", "amount": 2000}
 ```
-*Live Stripe servers still receive the genuine `Authorization: Bearer sk_live_51Hc29...` token, so payments never fail!*
+*Live backend servers still receive the genuine `Authorization: Bearer sk_live_51Hc29...` token, so payments and authentication never fail!*
 
 ---
 
@@ -175,7 +187,7 @@ Wrap your keys in Dart code:
 ```dart
 import 'package:vibeshield_flutter/vibeshield_flutter.dart';
 
-// Wrap your sensitive key
+// Wrap your sensitive key once
 final stripeKey = SecureKey('sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'); // vibeshield-ignore
 ```
 
@@ -270,61 +282,125 @@ Summary:
 
 ---
 
-## Native Dart String Extensions
+## Real-World Scenarios
 
-VibeShield extends `String` with zero-overhead masking helpers:
+### Scenario 1: Authentication & JWT Login Response
+
+When a user logs in, your server returns authentication tokens. Printing or logging the response often exposes tokens in the terminal:
 
 ```dart
-final token = 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'; // vibeshield-ignore
+final response = await dio.post('/api/auth/login', data: credentials);
 
-// Partial mask (sk_live_****7890)
-print(token.halfMasked);
+// Even if you or a 3rd-party logger prints this:
+print('User logged in successfully: ${response.data}');
 
-// Full shape-preserving mask (0% character overlap)
-print(token.fullMasked);
+// Raw response payload:
+// {"userId": 1024, "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "refreshToken": "aB39xK7mQ2vL5pT8wR1yU4zE6nJ0sAbCd"}
 
-// Redact all embedded secrets in a multi-line string or JSON blob
-print(apiResponseBody.redacted);
+// Terminal displays safely:
+// User logged in successfully: {"userId": 1024, "token": "eyJh****...", "refreshToken": "aB39****AbCd"}
 
-// AI-safe full redaction
-print(llmPrompt.aiSafe);
+// Dart runtime code still accesses the genuine tokens:
+final userToken = response.data['token']; // Valid unmasked string!
+await flutterSecureStorage.write(key: 'jwt', value: userToken);
 ```
 
----
+### Scenario 2: Stripe SDK & Payment Gateway
 
-## Fluent Structured Logging
-
-Log structured diagnostic events with automatic recursive sanitization:
+Client-side payments require initializing Stripe or gateway tokens:
 
 ```dart
-VibeShield.log('Payment processed', LogLevel.info)
-    .tag('CHECKOUT')
-    .data({
-      'userId': 94103,
-      'amount': 89.00,
-      'stripeKey': 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890', // Redacted! // vibeshield-ignore
-      'jwt': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', // Redacted!
-      'randomHash': 'aB39xK7mQ2vL5pT8wR1yU4zE6nJ0sAbCd', // Redacted by Entropy!
-    })
+final secretKey = SecureKey('sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'); // vibeshield-ignore
+
+// Safe in logging:
+VibeShield.log('Initializing payment intent', LogLevel.info)
+    .data({'customer': 'cus_123', 'key': secretKey})
     .send();
+
+// Expose only for the actual HTTPS request:
+final paymentIntent = await stripeApi.createIntent(
+  secret: secretKey.exposeRaw(),
+  amount: 4900,
+);
 ```
 
----
+### Scenario 3: Non-Custodial Crashlytics & Sentry
 
-## Crashlytics & Sentry Telemetry Hook
-
-Want to know when secrets are being leaked in debug environments without capturing the secret itself? Use the non-custodial telemetry hook:
+Forward leak alerts to your telemetry pipeline without capturing the real secret:
 
 ```dart
 VibeShield.onRedacted = (RedactionEvent event) {
-  // Safe to pipe to Crashlytics or Sentry:
-  // event.ruleName      -> "Stripe Live Secret Key"
-  // event.category      -> "payment"
-  // event.maskedPreview -> "sk_live_****7890" (ZERO raw secret data)
-  // event.timestamp     -> DateTime
-  print('[Security Audit] Intercepted leak of ${event.ruleName}');
+  // Safe to send to Sentry or Firebase Crashlytics:
+  FirebaseCrashlytics.instance.log(
+    'Secret Redacted: ${event.ruleName} in category ${event.category}',
+  );
+  FirebaseCrashlytics.instance.setCustomKey('lastMaskedPreview', event.maskedPreview);
+  // event.maskedPreview is sk_live_****7890 (ZERO raw secret data)
 };
 ```
+
+### Scenario 4: CI/CD Pipeline Enforcement
+
+Add VibeShield to your GitHub Actions (`.github/workflows/security.yml`):
+
+```yaml
+name: Security Scan
+on: [push, pull_request]
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Run VibeShield Static Audit
+        run: dart run vibeshield --path=lib
+```
+
+---
+
+## Complete API Reference & Parameters
+
+### `VibeShield.run<R>(body, {...})`
+Runs your app or code block inside an auto-redacting Dart Zone.
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `body` | `R Function()` | **Required** | The closure to execute (e.g. `() => runApp(const MyApp())`). |
+| `mode` | `MaskMode?` | `MaskMode.partial` | Initial masking mode ([MaskMode.partial], [MaskMode.full], or [MaskMode.off]). |
+| `enableInRelease` | `bool` | `false` | When `false`, immediately executes `body()` with **zero Dart Zones and zero overhead** in release mode. |
+| `exactSecrets` | `List<String>?` | `null` | Optional list of specific raw secret strings to always mask. |
+| `onRedactionEvent`| `Function(RedactionEvent)?`| `null` | Non-custodial callback triggered whenever a secret is redacted. |
+
+---
+
+### `VibeShieldDioInterceptor({...})`
+Dio interceptor that scrubs HTTP request/response logs.
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `overrideMode` | `MaskMode?` | `null` | Explicit mode override for Dio logs. Defaults to global `VibeShield.maskMode`. |
+| `enableInRelease` | `bool` | `false` | When `false`, calls `handler.next()` directly in release builds with zero overhead. |
+| `logRequests` | `bool` | `true` | Log outgoing HTTP requests (method, URI, sanitized headers, query params, and body). |
+| `logResponses` | `bool` | `true` | Log incoming HTTP responses (status code, URI, and sanitized body). |
+| `logErrors` | `bool` | `true` | Log Dio exceptions with sanitized error messages. |
+
+---
+
+### `SecureKey(raw, {maskMode})`
+AI-proof key wrapper that hides credentials from string interpolation, `print()`, and JSON serialization.
+
+| Parameter / Method | Type | Description |
+| :--- | :--- | :--- |
+| `raw` | `String` | The raw secret string. |
+| `maskMode` | `MaskMode` | Masking mode to use in `toString()` (default: `MaskMode.partial`). |
+| `toString()` | `String` | Returns masked string (e.g. `sk_live_****7890`). Prevents AI scraping. |
+| `toJson()` | `dynamic` | Returns masked string for safe JSON serialization. |
+| `exposeRaw()` | `String` | Explicitly returns the raw secret for HTTPS network calls. |
 
 ---
 

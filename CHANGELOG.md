@@ -24,3 +24,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Native String Extensions**: `.masked`, `.halfMasked`, `.fullMasked`, `.redacted`, `.aiSafe`, and `.maskWith(mode)`.
 - **Non-Custodial Audit Hook**: `VibeShield.onRedacted` callback for non-custodial telemetry forwarding (e.g. Sentry, Crashlytics).
 - **Backward Compatibility**: Full backward compatibility with `SecureLog.print` and `SecureLog.mask`.
+
