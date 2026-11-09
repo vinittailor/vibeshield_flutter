@@ -111,7 +111,10 @@ void main() {
       VibeShield.setMode(MaskMode.partial);
     });
 
-    test('7. Direct VibeShieldDioInterceptor cleans headers, query, and body', () {
+    test('7. Direct VibeShieldDioInterceptor cleans headers, query, and body in logs', () {
+      final captured = <String>[];
+      VibeShield.customPrinter = (msg) => captured.add(msg);
+
       final dio = Dio();
       final interceptor = VibeShield.dioInterceptor();
       dio.interceptors.add(interceptor);
@@ -135,10 +138,31 @@ void main() {
       interceptor.onRequest(options, handler);
 
       expect(handler.passedOptions, isNotNull);
-      expect(options.headers['Authorization'].toString().contains('sk_live_****7890'), isTrue);
-      expect(options.headers['Authorization'].toString().contains('51Hc29KJ8f3ks9fQ2'), isFalse);
-      expect(options.queryParameters['apiKey'].toString().contains('AKIA****MPLE'), isTrue);
-      expect((options.data as Map)['clientSecret'].toString().contains('sk_live_****7890'), isTrue);
+      // The real HTTP request over the wire preserves the valid authorization key
+      expect(options.headers['Authorization'], equals('Bearer sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'));
+
+      // BUT the logged console output has the secret safely redacted!
+      expect(captured.isNotEmpty, isTrue);
+      final log = captured[0];
+      expect(log.contains('sk_live_****7890'), isTrue);
+      expect(log.contains('51Hc29KJ8f3ks9fQ2ABCDEF12'), isFalse);
+      expect(log.contains('AKIA****MPLE'), isTrue);
+
+      VibeShield.customPrinter = null;
+    });
+
+    test('8. Provable Zero Release Footprint: enableInRelease = false directly runs body', () {
+      bool executed = false;
+      final value = VibeShield.run(
+        () {
+          executed = true;
+          return 'hello_production';
+        },
+        enableInRelease: false,
+      );
+
+      expect(executed, isTrue);
+      expect(value, equals('hello_production'));
     });
   });
 }

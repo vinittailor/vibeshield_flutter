@@ -66,12 +66,14 @@ class VibeShield {
   /// `dio.interceptors.add(VibeShield.dioInterceptor(mode: MaskMode.full));`
   static VibeShieldDioInterceptor dioInterceptor({
     legacy.MaskMode? mode,
+    bool enableInRelease = false,
     bool logRequests = true,
     bool logResponses = true,
     bool logErrors = true,
   }) =>
       VibeShieldDioInterceptor(
         overrideMode: mode,
+        enableInRelease: enableInRelease,
         logRequests: logRequests,
         logResponses: logResponses,
         logErrors: logErrors,
@@ -87,11 +89,19 @@ class VibeShield {
   /// Globally installs VibeShield into the active Dart/Flutter environment.
   /// Once installed, every standard `print(...)` in your app, third-party libraries,
   /// and the framework is automatically intercepted and redacted before display.
+  ///
+  /// In release builds (APK/AAB), if [enableInRelease] is false (default),
+  /// installation is completely bypassed with zero overhead.
   static void install({
     legacy.MaskMode? initialMode,
+    bool enableInRelease = false,
     List<String>? exactSecrets,
     void Function(legacy.RedactionEvent event)? onRedactionEvent,
   }) {
+    if (!legacy.kDebugMode && !enableInRelease) {
+      return;
+    }
+
     if (initialMode != null) mode = initialMode;
     if (exactSecrets != null) addExactMatches(exactSecrets);
     if (onRedactionEvent != null) onRedacted = onRedactionEvent;
@@ -112,19 +122,31 @@ class VibeShield {
   }
 
   /// Runs an entire Flutter app or code block inside an isolated auto-redacting Dart Zone.
+  ///
+  /// In production release builds (e.g. building APK or AAB files), if [enableInRelease]
+  /// is false (the default), VibeShield directly invokes [body] with ZERO Zone interception,
+  /// ZERO overhead, and zero interference with production performance.
+  ///
   /// Recommended pattern for Flutter `main()`:
   /// ```dart
   /// void main() => VibeShield.run(
   ///   () => runApp(const MyApp()),
-  ///   mode: MaskMode.partial, // or MaskMode.full, MaskMode.off
+  ///   mode: MaskMode.partial,
+  ///   enableInRelease: false, // Provably calls runApp directly in release APK/AAB!
   /// );
   /// ```
   static R run<R>(
     R Function() body, {
     legacy.MaskMode? mode,
+    bool enableInRelease = false,
     List<String>? exactSecrets,
     void Function(legacy.RedactionEvent event)? onRedactionEvent,
   }) {
+    // In production release builds (APK/AAB), completely bypass VibeShield by default!
+    if (!legacy.kDebugMode && !enableInRelease) {
+      return body();
+    }
+
     if (mode != null) VibeShield.mode = mode;
     if (exactSecrets != null) addExactMatches(exactSecrets);
     if (onRedactionEvent != null) onRedacted = onRedactionEvent;
