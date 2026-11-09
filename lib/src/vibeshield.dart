@@ -18,8 +18,10 @@ export 'rules.dart';
 export 'entropy.dart';
 export 'secure_log.dart' show MaskMode, LogLevel, RedactionEvent, kDebugMode;
 export 'dio_interceptor.dart';
+export 'ai_shield.dart';
 
 import 'dio_interceptor.dart';
+import 'ai_shield.dart';
 
 /// Backward-compatibility alias
 typedef SecureLog = VibeShield;
@@ -274,6 +276,19 @@ class VibeShield {
     ));
   }
 
+  /// Sanitizes text, prompts, logs, or JSON payloads specifically for passing to AI / LLM models.
+  /// Replaces all API keys, bearer tokens, passwords, and high-entropy strings with shape-preserving
+  /// masks (0% character overlap), ensuring no real secret ever reaches OpenAI, Anthropic, Gemini, or any LLM server.
+  static dynamic aiSafe(dynamic payload) {
+    return sanitize(payload, overrideMode: legacy.MaskMode.full);
+  }
+
+  /// Automatically creates and syncs `.cursorignore`, `.copilotignore`, `.claudeignore`, and `.aiexclude`
+  /// in your Flutter project to block IDE AI agents from reading `.env`, `key.properties`, and keystores.
+  static List<String> protectFromAi([String? rootPath]) {
+    return AiShield.protectProject(rootPath);
+  }
+
   // --------------------------------------------------------------------------
   // 3. NETWORK & HTTP SCRUBBING (Better Way #3)
   // --------------------------------------------------------------------------
@@ -447,4 +462,7 @@ extension VibeShieldStringExtension on String {
 
   /// Masks this string using an explicit mode.
   String maskWith(legacy.MaskMode mode) => VibeShield.mask(this, overrideMode: mode);
+
+  /// Converts this string or prompt into an AI-safe prompt where all credentials are fully masked.
+  String get aiSafe => VibeShield.redact(this, overrideMode: legacy.MaskMode.full);
 }

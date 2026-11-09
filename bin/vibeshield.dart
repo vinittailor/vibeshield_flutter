@@ -18,6 +18,18 @@ void main(List<String> args) {
     exit(2);
   }
 
+  // Check for --shield-ai flag to auto-generate AI protection ignore files
+  if (args.contains('--shield-ai') || args.contains('--protect-ai')) {
+    final updated = VibeShield.protectFromAi(scanDir.path);
+    stdout.writeln('🛡️  VibeShield AI Shield activated!');
+    stdout.writeln('Created/updated ${updated.length} AI-ignore file(s) to block AI tools:');
+    for (final f in updated) {
+      stdout.writeln('  • $f');
+    }
+    stdout.writeln('\nYour .env, key.properties, and secrets are now blocked from Cursor, Copilot, Claude, and JetBrains AI.');
+    exit(0);
+  }
+
   if (!jsonOutput) {
     stdout.writeln('======================================================================');
     stdout.writeln('      🛡️  VIBESHIELD FLUTTER & DART STATIC SECURITY SCANNER  🛡️');
@@ -247,3 +259,4 @@ String _toJsonOutput(int fileCount, List<ScanFinding> confirmed, List<ScanFindin
   buffer.writeln('}');
   return buffer.toString();
 }
+

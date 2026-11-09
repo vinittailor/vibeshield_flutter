@@ -164,6 +164,39 @@ void main() {
       expect(executed, isTrue);
       expect(value, equals('hello_production'));
     });
+
+    test('9. SecureKey AI-Proof Wrapper: prevents toString/JSON/context leakage', () {
+      const rawSecret = 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890';
+      const secureKey = SecureKey(rawSecret);
+
+      // String interpolation & toString ONLY returns masked preview
+      expect(secureKey.toString(), contains('sk_live_****7890'));
+      expect(secureKey.toString().contains('51Hc29KJ8f3ks9fQ2ABCDEF12'), isFalse);
+      expect('Bearer $secureKey', contains('sk_live_****7890'));
+
+      // JSON serialization is safe
+      expect(secureKey.toJson().toString(), contains('sk_live_****7890'));
+
+      // Raw value is ONLY accessible via explicit exposeRaw()
+      expect(secureKey.exposeRaw(), equals(rawSecret));
+    });
+
+    test('10. VibeShield.aiSafe & String.aiSafe scrubs prompts before sending to LLMs', () {
+      const promptWithSecret =
+          'User asked for refund on Stripe key sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890 and token ghp_16C7e42F292c6912E7710c838347Ae178B4a';
+
+      final safePrompt = promptWithSecret.aiSafe;
+      expect(safePrompt.contains('sk_live'), isFalse);
+      expect(safePrompt.contains('ghp_'), isFalse);
+      expect(safePrompt.contains('51Hc29KJ8f3ks9fQ2'), isFalse);
+
+      final safeMap = VibeShield.aiSafe({
+        'context': 'Debug context',
+        'auth': 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890',
+      }) as Map;
+
+      expect(safeMap['auth'].toString().contains('sk_live'), isFalse);
+    });
   });
 }
 
