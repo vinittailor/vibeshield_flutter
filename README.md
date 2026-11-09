@@ -3,7 +3,7 @@
 [![Pub Version](https://img.shields.io/pub/v/vibeshield_flutter.svg)](https://pub.dev/packages/vibeshield_flutter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Dart SDK](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/vinit/vibeshield)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/vinittailor/vibeshield_flutter)
 
 > **The Ultimate Flutter & Dart Secret Redaction SDK — Zero custody, zero production footprint, and airtight protection against leaks to logs, AI assistants, and network traces.**
 

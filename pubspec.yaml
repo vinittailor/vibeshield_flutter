@@ -1,9 +1,9 @@
 name: vibeshield_flutter
 description: Flutter & Dart SDK for VibeShield — secret redaction with zero custody and zero production footprint via tree-shaking.
 version: 0.1.0
-homepage: https://github.com/vinit/vibeshield
-repository: https://github.com/vinit/vibeshield/tree/master/packages/flutter-sdk
-issue_tracker: https://github.com/vinit/vibeshield/issues
+homepage: https://github.com/vinittailor/vibeshield_flutter
+repository: https://github.com/vinittailor/vibeshield_flutter
+issue_tracker: https://github.com/vinittailor/vibeshield_flutter/issues
 topics:
   - security
   - logging
