@@ -133,3 +133,4 @@ List<EntropyMatch> scanHighEntropyTokens(
 extension _ListHelper on List<EntropyMatch> {
   void pushOrAdd(EntropyMatch item) => add(item);
 }
+
