@@ -51,6 +51,54 @@ void main() {
 
       expect(redacted.contains('CUSTOM_TOP_SECRET_AUTH_TOKEN'), isFalse);
     });
+
+    test('metadata dictionary recursive redaction', () {
+      final captured = <String>[];
+      SecureLog.customPrinter = (msg) => captured.add(msg);
+
+      SecureLog.info('User action event', metadata: {
+        'userId': 42,
+        'token': 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890',
+        'details': {
+          'awsKey': 'AKIAIOSFODNN7EXAMPLE',
+          'environment': 'staging',
+        },
+      });
+
+      expect(captured.length, equals(1));
+      expect(captured[0].contains('sk_live_****7890'), isTrue);
+      expect(captured[0].contains('AKIA****MPLE'), isTrue);
+      expect(captured[0].contains('51Hc29KJ8f3ks9fQ2'), isFalse);
+      expect(captured[0].contains('IOSFODNN7EXA'), isFalse);
+      expect(captured[0].contains('staging'), isTrue);
+    });
+
+    test('entropy fallback masks unknown random high-entropy secrets', () {
+      // 34-character random alphanumeric secret that does not match any provider prefix
+      const randomSecret = 'aB39xK7mQ2vL5pT8wR1yU4zE6nJ0sAbCd';
+      expect(calculateShannonEntropy(randomSecret), greaterThan(4.0));
+
+      final log = 'Custom gateway token: aB39xK7mQ2vL5pT8wR1yU4zE6nJ0sAbCd';
+      final redacted = SecureLog.redact(log);
+
+      expect(redacted.contains(randomSecret), isFalse);
+      expect(redacted.contains('****'), isTrue);
+    });
+
+    test('onRedacted callback sends non-custodial metadata without raw secrets', () {
+      final events = <RedactionEvent>[];
+      SecureLog.onRedacted = (evt) => events.add(evt);
+
+      SecureLog.redact('Stripe key: sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890');
+
+      expect(events.isNotEmpty, isTrue);
+      final first = events.first;
+      expect(first.ruleName, equals('Stripe Live Secret Key'));
+      expect(first.category, equals('payment'));
+      expect(first.maskedPreview.contains('sk_live_****7890'), isTrue);
+      expect(first.maskedPreview.contains('51Hc29KJ8f3ks9fQ2'), isFalse);
+      SecureLog.onRedacted = null;
+    });
   });
 }
 
