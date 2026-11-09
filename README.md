@@ -53,7 +53,6 @@ Every Flutter developer accidentally prints credentials during debugging: Stripe
   - [Scenario 4: CI/CD Pipeline Enforcement](#scenario-4-cicd-pipeline-enforcement)
 - [Complete API Reference & Parameters](#complete-api-reference--parameters)
 - [Supported Secret Rules](#supported-secret-rules)
-- [Backward Compatibility](#backward-compatibility)
 - [License](#license)
 
 ---
@@ -416,16 +415,6 @@ VibeShield includes a high-precision regex engine and Shannon entropy analyzer m
 - **Private Keys:** RSA/EC/OpenSSH/PGP PEM blocks.
 - **Database Connection URIs:** PostgreSQL, MySQL, MongoDB, Redis connection URLs with credentials.
 - **Shannon Entropy Engine:** Unknown random tokens with entropy $\ge 4.5$ (Base64) or $\ge 3.0$ (Hex).
-
----
-
-## Backward Compatibility
-
-Existing code using `SecureLog` works with 100% compatibility:
-
-```dart
-SecureLog.print('User token: sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'); // vibeshield-ignore
-```
 
 ---
 
