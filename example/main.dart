@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:vibeshield_flutter/vibeshield_flutter.dart';
 
 void main() {
@@ -11,56 +12,87 @@ void main() {
   };
 
   // ----------------------------------------------------------------------
-  // 1. Better Way #1: Zero-Friction Global Interception (VibeShield.run)
+  // 1. The Three Masking Modes: Off, Half (Partial), and Full
   // ----------------------------------------------------------------------
-  print('--- 1. Zero-Friction Global Interception (VibeShield.run) ---');
+  print('--- 1. Three Masking Modes (Off, Half/Partial, Full) ---');
+  const sampleKey = 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'; // vibeshield-ignore
+
+  VibeShield.setMode(MaskMode.off);
+  print('• Mode: OFF      -> ${VibeShield.redact("Key: $sampleKey")}'); // Raw unmasked
+
+  VibeShield.setMode(MaskMode.partial);
+  print('• Mode: HALF     -> ${VibeShield.redact("Key: $sampleKey")}'); // Prefix + suffix preview
+
+  VibeShield.setMode(MaskMode.full);
+  print('• Mode: FULL     -> ${VibeShield.redact("Key: $sampleKey")}'); // 0% overlap shape mask
+
+  // Cycling modes programmatically
+  final nextMode = VibeShield.cycleMode();
+  print('• Cycled mode to -> $nextMode\n');
+  VibeShield.setMode(MaskMode.partial); // reset to partial default
+
+  // ----------------------------------------------------------------------
+  // 2. Direct Dio Plug-and-Play Network Interceptor
+  // ----------------------------------------------------------------------
+  print('--- 2. Direct Plug-and-Play Dio Interceptor ---');
+  final dio = Dio();
+
+  // Add VibeShield interceptor in ONE line!
+  dio.interceptors.add(VibeShield.dioInterceptor());
+
+  // Simulate an outgoing request with secret headers and body payload:
+  print('Simulating Dio HTTP Request with sensitive headers and payload:');
+  final reqOptions = RequestOptions(
+    path: 'https://api.stripe.com/v1/customers',
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890', // vibeshield-ignore
+      'X-Api-Key': 'AKIAIOSFODNN7EXAMPLE', // vibeshield-ignore
+      'Content-Type': 'application/json',
+    },
+    queryParameters: {
+      'token': 'aB39xK7mQ2vL5pT8wR1yU4zE6nJ0sAbCd',
+    },
+    data: {
+      'customerEmail': 'dev@example.com',
+      'cardSecret': 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890', // vibeshield-ignore
+    },
+  );
+
+  // Run through interceptor:
+  VibeShield.dioInterceptor().onRequest(reqOptions, RequestInterceptorHandler());
+
+  // ----------------------------------------------------------------------
+  // 3. Zero-Friction Global Interception (VibeShield.run)
+  // ----------------------------------------------------------------------
+  print('\n--- 3. Zero-Friction Global Interception (VibeShield.run) ---');
   VibeShield.run(() {
-    // Normal print() calls anywhere in your app or third-party packages:
-    print('Calling Stripe API with: sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'); // vibeshield-ignore
-    print('AWS access key: AKIAIOSFODNN7EXAMPLE'); // vibeshield-ignore
+    // Normal standard print() calls anywhere in your app:
+    print('Standard print: Calling Stripe with sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890'); // vibeshield-ignore
   });
 
   // ----------------------------------------------------------------------
-  // 2. Better Way #2: Native Dart Extension Methods (secret.masked)
+  // 4. Native Dart String Extensions (.halfMasked, .fullMasked, .redacted)
   // ----------------------------------------------------------------------
-  print('\n--- 2. Native Dart String Extensions (.masked / .redacted) ---');
+  print('\n--- 4. Native Dart String Extensions (.halfMasked / .fullMasked) ---');
   const userToken = 'ghp_16C7e42F292c6912E7710c838347Ae178B4a'; // vibeshield-ignore
-  print('Single value preview:  ${userToken.masked}');
-  print('Full zero-overlap mask: ${userToken.fullMasked}');
-
-  const multilineLog = 'Server log: user logged in, token is ghp_16C7e42F292c6912E7710c838347Ae178B4a'; // vibeshield-ignore
-  print('Redacted full text:    ${multilineLog.redacted}');
+  print('Half mask (preview):    ${userToken.halfMasked}');
+  print('Full mask (0% overlap): ${userToken.fullMasked}');
+  print('Text redacted:          ${"Logged in with $userToken".redacted}');
 
   // ----------------------------------------------------------------------
-  // 3. Better Way #3: Fluent Structured Logging with Metadata
+  // 5. Fluent Structured Logging with Metadata
   // ----------------------------------------------------------------------
-  print('\n--- 3. Fluent Structured Logging with Auto-Sanitized Data ---');
-  VibeShield.log('User completed in-app checkout', LogLevel.info)
-      .tag('CHECKOUT')
+  print('\n--- 5. Fluent Structured Logging with Metadata ---');
+  VibeShield.log('Payment processed', LogLevel.info)
+      .tag('BILLING')
       .data({
-        'userId': 1042,
-        'amount': 49.99,
-        'stripeSecret': 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890', // Auto-redacted! // vibeshield-ignore
-        'nested': {
-          'proprietaryHighEntropyToken': 'aB39xK7mQ2vL5pT8wR1yU4zE6nJ0sAbCd', // Auto-detected by entropy!
-        },
+        'amount': 99.00,
+        'secret': 'sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890', // vibeshield-ignore
       })
       .send();
 
-  // ----------------------------------------------------------------------
-  // 4. Better Way #4: HTTP & Network Header Scrubbing
-  // ----------------------------------------------------------------------
-  print('\n--- 4. HTTP & Network Header Scrubbing ---');
-  final networkHeaders = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer sk_live_51Hc29KJ8f3ks9fQ2ABCDEF1234567890', // vibeshield-ignore
-    'X-Api-Key': 'AKIAIOSFODNN7EXAMPLE', // vibeshield-ignore
-    'User-Agent': 'FlutterApp/1.0',
-  };
-  final safeHeaders = VibeShield.sanitizeHeaders(networkHeaders);
-  print('Safe Network Headers: $safeHeaders');
-
   print('\n========================================================');
-  print('  ✅ All approaches unified seamlessly in one package!');
+  print('  ✅ All 3 modes and Dio interceptor verified live!');
   print('========================================================');
 }
